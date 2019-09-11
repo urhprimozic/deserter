@@ -9,12 +9,18 @@ let canvas = kontra.getCanvas();
 let ground = [canvas.width / 1.6, canvas.height - 150];
 
 let sprites = [];//0 is player, 1 is player's arm, others are bullets
+let enemyBullets = [];
 let enemies = [];
 let env = [];
 let particles = [];
+let preEnv = [];
 
 let armySpeed = 4;
 initPointer();
+
+let playerIsAlive = true;
+let isOver = false;
+let lastBunker = screen.width;
 
 //assets
 let playerImg = new Image();
@@ -99,6 +105,52 @@ playerImg.onload = function () {
                 sprites.push(Bullet);
             }
 
+            function death() {
+                playerIsAlive = false;
+                player.ttl = 0;
+                playerGun.ttl = 0;
+
+                /*
+                for(let i = 0;i<enemies.length;i++)enemies[i].dx = 0;
+                for(let i = 0;i<preEnv.length;i++)preEnv[i].dx = 0;*/
+                for (let i = 0; i < 40; i++) {
+                    let r = 2 * Math.random();
+                    if (r < 1) r = 2;
+                    let j = 1;
+                    let dx = Math.floor(Math.random() * r * 2) - r;
+                    if (Math.random() > 0.5) j = -1;
+                    let blood = kontra.Sprite({
+                        x: Math.floor(Math.random() * (player.width - 10)) + player.x + 5,
+                        y: Math.floor(Math.random() * (player.height - 10)) + player.y + 5,
+                        dx: dx,
+                        dy: j * Math.sqrt(r * r - dx * dx),
+                        ddy: 0.09,
+                        width: 7,
+                        height: 7,
+                        color: 'red',
+                        ttl: 180,
+                        update() {
+                            if (this.collidesWith(groundSpr)) {
+                                this.dy = 0;
+                                this.dx = 0;
+                                this.ddy = 0;
+                            }
+                            if (this.ttl === 1) {
+                                this.ttl = Infinity;
+                                if (!isOver) {
+                                    isOver = true;
+                                    GameOver();
+                                }
+                            }
+                            this.advance();
+                        }
+                    });
+                    particles.push(blood);
+                }
+                player.y = 2*canvas.height;
+                player.height = 0;
+            }
+
             let ExplosionForce = [5, 10];
 
             function createExplosion(x, y) {
@@ -127,7 +179,7 @@ playerImg.onload = function () {
                             //AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD Color changing
                             if (this.collidesWith(groundSpr)) this.ttl = 0;
                             this.advance();
-                            if (this.collidesWith(player) && this.ttl > 0) GameOver();
+                            if (this.collidesWith(player) && playerIsAlive) death();
                         }
                     });
                     particles.push(small);
@@ -191,40 +243,65 @@ playerImg.onload = function () {
                     width: 7,
                     height: 7,
                     color: 'yellow',
+                    update(){
+                        if(this.collidesWith(player)){
+                            this.ttl = 0;
+                            death();
+                        }
+                        this.advance();
+                    }
                 });
                 Bullet.dx = Math.cos(Bullet.q) * Bullet.v;
                 Bullet.dy = Math.sin(Bullet.q) * Bullet.v;
-                enemies.push(Bullet);
+                enemyBullets.push(Bullet);
             }
 
             function createGunner() {
+                lastBunker = -200;
                 let Gunner = kontra.Sprite({
                     height: 80,
                     width: 160,
-                    x: -100,
+                    x: -200,
                     y: ground[1] - 80,
                     dx: armySpeed,
-                    ttl: 300,
-                    pause: 25,
+                    ttl: 600,
+                    pause: 18,
                     counter: 0,
-                    i: 0,
+                    i: 1,
                     image: gunnerImg,
                     update() {
-                        if (this.counter === 0) {
+                        if (lastBunker == this.x) lastBunker += this.dx;
+                        if (this.counter <= 0) {
                             if (this.i < 3) this.counter = this.pause;
                             else {
                                 this.i = 0;
-                                this.counter = this.pause * 5;
+                                this.counter = this.pause * 6;
                             }
-                            createEnemyBullet(this.x + this.height, this.y + this.width / 2, player.x, player.y);
+                            if (this.x < canvas.width && playerIsAlive) createEnemyBullet(this.x + this.width / 2, this.y + this.height / 2, player.x + player.width / 2, player.y + player.height / 2);
+                            this.i += 1;
                         }
                         this.counter -= 1;
-                        this.i += 1;
+                        //  this.i += 1;
 
 
                         this.advance();
                     }
                 });
+                let Gun = kontra.Sprite({
+                    height: 10,
+                    width: 150,
+                    anchor: {x: 0, y: 0.5},
+                    x: Gunner.x + Gunner.width / 2,
+                    y: Gunner.y + Gunner.height / 2,
+                    ttl: 600,
+                    dx: armySpeed,
+                    color: 'black',
+                    update() {
+                        if(playerIsAlive)this.rotation = Math.atan2(player.y + player.height / 2 - Gunner.y - Gunner.height / 2, player.x + player.width / 2 - Gunner.x + Gunner.width / 2);
+                        this.advance();
+                    }
+                });
+                enemies.push(Gun);
                 enemies.push(Gunner);
             }
 
@@ -237,12 +314,57 @@ playerImg.onload = function () {
                 player.y = ground[1];
             }
 
+            function createGrass(x) {
+                //let layers = Math.floor(Math.random())
+                /*
+                1 tile is 10x10
+                so 10 tiles on grass
+                 */
+                let coloring = []
+                for (let i = 0; i < 11; i++) {
+                    let row = [];
+                    let color = 'rgb(' + Math.floor(Math.random() * i * 10).toString() + ',' + (Math.floor(Math.random() * 155) + 100).toString() + ',' + Math.floor(Math.random() * i * 10).toString() + ')';
+                    if (i === 0)color = 'rgb(0,100,0)';
+                    if (i === 1)color = 'rgb(10,130,10)';
+                    if (i === 2)color = 'rgb(20,160,20)';
+                        row.push(color);
+                    for (let j = 0; j < 10; j++) {
+                        if (Math.random() * (i + 1) <= 0.99) row.push(1);
+                        else row.push(0);
+                    }
+                    coloring.push(row);
+                }
+
+                let tile = 10;
+                let grass = kontra.Sprite({
+                    x: x,
+                    y: ground[1],
+                    dx: armySpeed,
+                    coloring: coloring,
+                    ttl: 800,
+                    update() {
+                        if (this.x === 0) createGrass(-100);
+                        this.advance();
+                    },
+                    render() {
+                        for (let i = 0; i < 11; i++) {//vrste
+                            this.context.fillStyle = coloring[i][0];
+                            for (let j = 0; j < 10; j++) {
+                                if (coloring[i][j + 1]) this.context.fillRect(this.x + j * tile, this.y + i * tile, tile, tile);
+                            }
+                        }
+                    }
+                });
+                preEnv.push(grass);
+            }
+            for(let i = 0;i*100<canvas.width;i++)createGrass(i*100);
+
             let groundSpr = kontra.Sprite({
                 x: 0,
                 y: ground[1],
                 height: canvas.height - ground[1],
                 width: canvas.width,
-                color: '#208000'
+                color: '#9f9f9f'
             });
             env.push(groundSpr);
             groundSpr.render();
@@ -312,14 +434,14 @@ playerImg.onload = function () {
 
             let playerGun = new kontra.Sprite({
                 color: 'black',
-                width: 50,
-                height: 10,
-                anchor: {x: 1, y: 1},
+                width: 28,
+                height: 4,
+                anchor: {x: 1, y: 0.5},
                 rotation: 0,
                 update() {
                     this.x = player.x + player.width / 2;
                     this.y = player.y + player.height / 2;
-                    this.rotation = 3.1416+Math.atan2(pointer.y - player.y - player.height / 2, pointer.x - player.x - player.width / 2);
+                    this.rotation = 3.1416 + Math.atan2(pointer.y - player.y - player.height / 2, pointer.x - player.x - player.width / 2);
                     this.advance();
                 }
             });
@@ -329,23 +451,31 @@ playerImg.onload = function () {
                 update() {
                     //chance for a bomb
                     let seed = Math.floor((Math.random() * 1001));
-                    if (seed >= 0 && seed <= 6) createBomb(Math.floor((Math.random() * (canvas.width - 50))) + 50)
-                    if (seed > 7 && seed <= 10) createGunner();
-                    for (let i = 0; i < env.length; i++) env[i].update();
-                    for (let i = 0; i < sprites.length; i++) sprites[i].update();
-                    for (let i = 0; i < particles.length; i++) particles[i].update();
-                    for (let i = 0; i < enemies.length; i++) enemies[i].update();
+                    if (seed >= 0 && seed <= 7) createBomb(Math.floor((Math.random() * (canvas.width - 50))) + 50)
+                    if (seed > 7 && seed <= 10 && lastBunker > canvas.height * 2 / 3) createGunner();
                     sprites = sprites.filter(sprite => sprite.isAlive());
                     enemies = enemies.filter(sprite => sprite.isAlive());
+                    enemyBullets = enemyBullets.filter(sprite => sprite.isAlive());
                     particles = particles.filter(sprite => sprite.isAlive());
                     env = env.filter(sprite => sprite.isAlive());
+                    preEnv = preEnv.filter(sprite => sprite.isAlive());
+                    for (let i = 0; i < env.length; i++) env[i].update();
+                    for (let i = 0; i < enemyBullets.length; i++) enemyBullets[i].update();
+                    for (let i = 0; i < enemies.length; i++) enemies[i].update();
+                    for (let i = 0; i < sprites.length; i++) sprites[i].update();
+                    for (let i = 0; i < particles.length; i++) particles[i].update();
+                    for (let i = 0; i < preEnv.length; i++) preEnv[i].update();
 
                 },
                 render() {
                     for (let i = 0; i < env.length; i++) env[i].render();
-                    for (let i = 0; i < sprites.length; i++) sprites[i].render();
-                    for (let i = 0; i < particles.length; i++) particles[i].render();
+                    for (let i = 0; i < enemyBullets.length; i++) enemyBullets[i].render();
                     for (let i = 0; i < enemies.length; i++) enemies[i].render();
+                    for (let i = 2; i < sprites.length; i++) sprites[i].render();
+                    if (playerGun.isAlive()) sprites[1].render();
+                    if (player.isAlive()) sprites[0].render();
+                    for (let i = 0; i < particles.length; i++) particles[i].render();
+                    for (let i = 0; i < preEnv.length; i++) preEnv[i].render();
                 }
             });
 //actuallll start
