@@ -35,3 +35,5 @@ When finished, change all the names and variables to something short. It can rea
 Try to avoid using pictures for the sprites. The time put into drawing is not worth it, since you will have to generate at least half of the game graphics using code anyway. 
 Use other's work. [kontra.js](https://github.com/straker/kontra) and [miniMusic](https://github.com/xem/miniMusic/) helped me a lot.
 
+## Improvements
+Game still lack a lot of features. Bombs should start fires. Since this is war, background should be destroyed. More sounds. Interactive design for every resolution. Rain and snow. Actuall day and night cycle. 
