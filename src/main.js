@@ -77,17 +77,52 @@ playerImg.onload = function () {
                     createBullet(pointer.x, pointer.y);
                     player.reloading = 40;
                 }
+                if(isOver)location.reload();
             });
 
             let sun = {x: -sunRadius, y: canvas.height / 2, q: Math.PI};
-/*
-            function createMountains() {
+
+            let rockProps = [1, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.05];
+
+            function createMountains(x) {
+                let tile = 10;
+                let rock = [];
+                for (let i = 0; i < 110; i++) {
+                    let vrsta = [];
+                    for (let j = 0; j < 100; j++) {
+                        if (i === 0) {
+                            vrsta.push(1);
+                            continue;
+                        }
+                        if (Math.random() <= rockProps[Math.floor(i / 10)] && rock[i - 1][j]) vrsta.push(1);
+                        else vrsta.push(0);
+                    }
+                    rock.push(vrsta);
+                }
 
                 let Mounatin = kontra.Sprite({
-                    height:
+                    x: x,
+                    y: ground[1],
+                    height: 1100,
+                    width: 1000,
+                    rock: rock,
+                    dx: 2,
+                    update() {
+                        if (this.x === 0) createMountains(-this.width);
+                        this.advance();
+                    },
+                    render() {
+                        for (let i = 0; i < this.rock.length; i++) {
+                            this.context.fillStyle = 'rgb(35,52,51)';
+                            for (let j = 0; j < this.rock[i].length; j++) if (this.rock[i][j]) this.context.fillRect(this.x + tile * j, this.y - tile * i, tile, tile);
+                        }
+                    }
                 });
+                env.push(Mounatin);
             }
-*/
+
+            for (let i = 0; i * 1000 < canvas.width; i++) createMountains(i * 1000);
+
             function createBlood() {
                 let a = Math.floor(Math.random() * 60) + 20;
                 let b = Math.floor(Math.random() * 8) + 2;
@@ -130,9 +165,9 @@ playerImg.onload = function () {
                     dy: 0,
                     ttl: 300,
                     //throw this away
-                  //  width: 5,
-                   // height: 5,
-                  //  color: 'rgb(78,71,25)',
+                    //  width: 5,
+                    // height: 5,
+                    //  color: 'rgb(78,71,25)',
                     r: 3,
                     force: 7,
                     update() {
@@ -140,10 +175,10 @@ playerImg.onload = function () {
                         if (this.collidesWith(groundSpr)) this.ttl = 0;
                         this.advance();
                     },
-                    render(){
+                    render() {
                         this.context.fillStyle = 'rgb(78,71,25)';
                         this.context.beginPath();  // start drawing a shape
-                        this.context.arc(this.x, this.y, this.r, 0, Math.PI*2);
+                        this.context.arc(this.x, this.y, this.r, 0, Math.PI * 2);
                         this.context.fill();
                     }
                 });
@@ -290,7 +325,7 @@ playerImg.onload = function () {
                     dy: 0,
                     ttl: 300,
                     //throw this away
-                   // width: 7,
+                    // width: 7,
                     //height: 7,
                     //color: 'yellow',
                     r: 5,
@@ -301,10 +336,10 @@ playerImg.onload = function () {
                         }
                         this.advance();
                     },
-                    render(){
-                        this.context.fillStyle = 'rgb(41,45,0)';
+                    render() {
+                        this.context.fillStyle = 'rgb(83,80,35)';
                         this.context.beginPath();  // start drawing a shape
-                        this.context.arc(this.x, this.y, this.r, 0, Math.PI*2);
+                        this.context.arc(this.x, this.y, this.r, 0, Math.PI * 2);
                         this.context.fill();
                     }
                 });
@@ -334,7 +369,7 @@ playerImg.onload = function () {
                                 this.i = 0;
                                 this.counter = this.pause * 7;
                             }
-                            if (this.x < canvas.width && playerIsAlive) createEnemyBullet(Gun.x + Gun.width*Math.cos(Gun.rotation), Gun.y+Gun.width*Math.sin(Gun.rotation), player.x + player.width / 2, player.y + player.height / 2);
+                            if (this.x < canvas.width && playerIsAlive) createEnemyBullet(Gun.x + Gun.width * Math.cos(Gun.rotation), Gun.y + Gun.width * Math.sin(Gun.rotation), player.x + player.width / 2, player.y + player.height / 2);
                             this.i += 1;
                         }
                         this.counter -= 1;
@@ -364,12 +399,10 @@ playerImg.onload = function () {
             }
 
             function GameOver() {
-                alert("lol u dead bro");
-                sprites = [];
-                sprites.push(player);
-                enemies = [];
-                player.x = ground[0];
-                player.y = ground[1];
+                let allShit = [env, enemyBullets, enemies, sprites, particles, preEnv, bloodEnv];
+                loop.stop();
+               // while(!pointerPressed('left'))console.log("");
+               // location.reload();
             }
 
             function createGrass(x) {
