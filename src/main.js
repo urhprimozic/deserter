@@ -9,6 +9,10 @@ htmlCanvas.height = window.innerHeight;
 let score = 0;
 let bDEs = 0;
 
+let dejkes = false;
+if(document.monetization && document.monetization.state === 'started')dejkes = true;
+
+
 let highscore = getStoreItem('highscore');
 if(highscore == null)highscore = 0;
 
@@ -27,7 +31,6 @@ let bloodEnv = [];
 
 let armySpeed = 4;
 initPointer();
-
 let playerIsAlive = true;
 let isOver = false;
 let lastBunker = screen.width;
@@ -83,7 +86,8 @@ playerImg.onload = function () {
             onPointerDown(function () {
                 if (player.reloading === 0) {
                     createBullet(pointer.x, pointer.y);
-                    player.reloading = 40;
+                    if(dejkes)player.reloading = 5;
+                    else player.reloading = 40;
                 }
                 if (isOver) location.reload();
             });
@@ -121,7 +125,11 @@ playerImg.onload = function () {
                     },
                     render() {
                         for (let i = 0; i < this.rock.length; i++) {
-                            this.context.fillStyle = 'rgb(35,52,51)';
+                            if(dejkes){
+                                if(Math.random()>0.5)this.context.fillStyle = 'rgb(255,25,157)';
+                                else this.context.fillStyle = 'rgb(128,255,0)';
+                            }
+                            else this.context.fillStyle = 'rgb(35,52,51)';
                             for (let j = 0; j < this.rock[i].length; j++) if (this.rock[i][j]) this.context.fillRect(this.x + tile * j, this.y - tile * i, tile, tile);
                         }
                     }
@@ -164,6 +172,8 @@ playerImg.onload = function () {
             }
 
             function createBullet(rx, ry) {
+                let r = 3;
+                if(dejkes)r = 9;
                 let Bullet = kontra.Sprite({
                     x: player.x + player.width / 2,
                     y: player.y + player.height / 2,
@@ -176,7 +186,7 @@ playerImg.onload = function () {
                     //  width: 5,
                     // height: 5,
                     //  color: 'rgb(78,71,25)',
-                    r: 3,
+                    r: r,
                     force: 7,
                     update() {
                         // for (let i = 0; i < enemies.length; i++) if (this.collidesWith(enemies[i])) enemies[i].ttl = 0;
@@ -188,6 +198,11 @@ playerImg.onload = function () {
                         this.context.beginPath();  // start drawing a shape
                         this.context.arc(this.x, this.y, this.r, 0, Math.PI * 2);
                         this.context.fill();
+                        if(dejkes){
+                            this.context.fillStyle = 'rgb(58,11,0)';
+                            this.context.strokeStyle = 'rgb(197,12,0)';
+                            this.context.stroke();
+                        }
                     }
                 });
                 Bullet.dx = Math.cos(Bullet.q) * Bullet.v;
@@ -540,11 +555,17 @@ playerImg.onload = function () {
             player.playAnimation('walk');
             sprites.push(player);
 
+            let gunSir = 4;
+            if(dejkes)gunSir = 18;
+            let gan = {x: 1, y: 0.5};
+            if(dejkes)gan = {x: 0.5, y: 0.5};
+            let gunDol=28;
+            if(dejkes)gunDol=80;
             let playerGun = new kontra.Sprite({
                 color: 'black',
-                width: 28,
-                height: 4,
-                anchor: {x: 1, y: 0.5},
+                width: gunDol,
+                height: gunSir,
+                anchor: gan,
                 rotation: 0,
                 update() {
                     this.x = player.x + player.width / 2;
@@ -557,6 +578,7 @@ playerImg.onload = function () {
 
             let loop = kontra.GameLoop({
                 update() {
+                    if(!dejkes)if(document.monetization && document.monetization.state === 'started')dejkes = true;
                     if(playerIsAlive)score += 0.1;
                     if (!isOver) {
                         //chance for a bomb
