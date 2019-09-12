@@ -1,10 +1,18 @@
 kontra.init();
-let {initPointer, onPointerDown, pointer, SpriteSheet} = kontra;
+let {initPointer, onPointerDown, pointer, SpriteSheet, setStoreItem, getStoreItem } = kontra;
 //resize canvas to cover the whole aera
 let htmlCanvas = document.getElementById("canvas");
 let ctx = htmlCanvas.getContext("2d");
 htmlCanvas.width = window.innerWidth;
 htmlCanvas.height = window.innerHeight;
+
+let score = 0;
+let bDEs = 0;
+
+let highscore = getStoreItem('highscore');
+if(highscore == null)highscore = 0;
+
+ctx.font = "42px monospace";
 
 let canvas = kontra.getCanvas();
 let ground = [canvas.width / 1.6, canvas.height - 150];
@@ -77,7 +85,7 @@ playerImg.onload = function () {
                     createBullet(pointer.x, pointer.y);
                     player.reloading = 40;
                 }
-                if(isOver)location.reload();
+                if (isOver) location.reload();
             });
 
             let sun = {x: -sunRadius, y: canvas.height / 2, q: Math.PI};
@@ -302,8 +310,10 @@ playerImg.onload = function () {
                             this.ttl = 0;
                             createExplosion(this.x + this.width / 2, ground[1] - 5);
                         }
-                        for (let i = 2; i < sprites.length; i++) if (this.collidesWith(sprites[i])) {
-                            sprites[2].ttl = 0;
+                        for (let i = 2; i < sprites.length; i++)if (this.collidesWith(sprites[i])) {
+                            bDEs += 1;
+                            score += 15;
+                            sprites[i].ttl = 0;
                             this.ttl = 0;
                             createExplosion(this.x + this.width / 2, this.y + this.height / 2);
                         }
@@ -337,9 +347,11 @@ playerImg.onload = function () {
                         this.advance();
                     },
                     render() {
-                        this.context.fillStyle = 'rgb(83,80,35)';
+                        this.context.fillStyle = 'rgb(0,0,0)';
                         this.context.beginPath();  // start drawing a shape
                         this.context.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+                        this.context.strokeStyle = 'rgba(203,255,0,0.97)';
+                        this.context.stroke();
                         this.context.fill();
                     }
                 });
@@ -391,7 +403,6 @@ playerImg.onload = function () {
                     update() {
                         if (playerIsAlive) this.rotation = Math.atan2(player.y + player.height / 2 - Gunner.y - Gunner.height / 2, player.x + player.width / 2 - Gunner.x - Gunner.width / 2);
                         this.advance();
-                        console.log(this.width);
                     }
                 });
                 enemies.push(Gun);
@@ -400,9 +411,14 @@ playerImg.onload = function () {
 
             function GameOver() {
                 let allShit = [env, enemyBullets, enemies, sprites, particles, preEnv, bloodEnv];
-                loop.stop();
-               // while(!pointerPressed('left'))console.log("");
-               // location.reload();
+                for (let i = 0; i < allShit.length; i++) for (let j = 0; j < allShit[i].length; j++) {
+                    allShit[i][j].dx = 0;
+                    allShit[i][j].dy = 0;
+                    allShit[i][j].ddx = 0;
+                    allShit[i][j].ddy = 0;
+                }
+                //loop.stop();
+
             }
 
             function createGrass(x) {
@@ -541,28 +557,32 @@ playerImg.onload = function () {
 
             let loop = kontra.GameLoop({
                 update() {
-                    //chance for a bomb
-                    let seed = Math.floor((Math.random() * 991));
-                    if (seed >= 0 && seed <= 9) createBomb(Math.floor((Math.random() * (canvas.width - 50))) + 50)
-                    if (seed > 9 && seed <= 12 && lastBunker > canvas.height * 2 / 3) createGunner();
-                    if (seed >= 0 && seed <= 2) createBlood();
-                    sprites = sprites.filter(sprite => sprite.isAlive());
-                    enemies = enemies.filter(sprite => sprite.isAlive());
-                    enemyBullets = enemyBullets.filter(sprite => sprite.isAlive());
-                    particles = particles.filter(sprite => sprite.isAlive());
-                    env = env.filter(sprite => sprite.isAlive());
-                    preEnv = preEnv.filter(sprite => sprite.isAlive());
-                    bloodEnv = bloodEnv.filter(sprite => sprite.isAlive());
-                    for (let i = 0; i < env.length; i++) env[i].update();
-                    for (let i = 0; i < enemyBullets.length; i++) enemyBullets[i].update();
-                    for (let i = 0; i < enemies.length; i++) enemies[i].update();
-                    for (let i = 0; i < sprites.length; i++) sprites[i].update();
-                    for (let i = 0; i < particles.length; i++) particles[i].update();
-                    for (let i = 0; i < preEnv.length; i++) preEnv[i].update();
-                    for (let i = 0; i < bloodEnv.length; i++) bloodEnv[i].update();
+                    if(playerIsAlive)score += 0.1;
+                    if (!isOver) {
+                        //chance for a bomb
+                        let seed = Math.floor((Math.random() * 991));
+                        if (seed >= 0 && seed <= 9) createBomb(Math.floor((Math.random() * (canvas.width - 50))) + 50)
+                        if (seed > 9 && seed <= 12 && lastBunker > canvas.height * 2 / 3) createGunner();
+                        if (seed >= 0 && seed <= 2) createBlood();
+                        sprites = sprites.filter(sprite => sprite.isAlive());
+                        enemies = enemies.filter(sprite => sprite.isAlive());
+                        enemyBullets = enemyBullets.filter(sprite => sprite.isAlive());
+                        particles = particles.filter(sprite => sprite.isAlive());
+                        env = env.filter(sprite => sprite.isAlive());
+                        preEnv = preEnv.filter(sprite => sprite.isAlive());
+                        bloodEnv = bloodEnv.filter(sprite => sprite.isAlive());
+                        for (let i = 0; i < env.length; i++) env[i].update();
+                        for (let i = 0; i < enemyBullets.length; i++) enemyBullets[i].update();
+                        for (let i = 0; i < enemies.length; i++) enemies[i].update();
+                        for (let i = 0; i < sprites.length; i++) sprites[i].update();
+                        for (let i = 0; i < particles.length; i++) particles[i].update();
+                        for (let i = 0; i < preEnv.length; i++) preEnv[i].update();
+                        for (let i = 0; i < bloodEnv.length; i++) bloodEnv[i].update();
+                    }
 
                 },
                 render() {
+
                     //day and night cycle
                     //move sun
                     sun.q -= 0.004;//fuck owerflows
@@ -585,6 +605,25 @@ playerImg.onload = function () {
                     for (let i = 0; i < particles.length; i++) particles[i].render();
                     for (let i = 0; i < bloodEnv.length; i++) bloodEnv[i].render();
                     for (let i = 0; i < preEnv.length; i++) preEnv[i].render();
+
+                    let strr = Math.floor(score).toString()
+                    if (isOver) {
+                        ctx.fillStyle = 'black';
+                        if(Math.floor(score)>Math.floor(highscore)){
+                            ctx.fillText("NEW HIGHSCORE!!", canvas.width - 600, 275);
+                            highscore = Math.floor(score);
+                            setStoreItem('highscore', highscore);
+                        }
+                        ctx.fillText("Click to retry", canvas.width - 600, 100, 1000);
+                        ctx.fillText("Score: "+strr, canvas.width - 600, 50, 1000);
+                        ctx.fillText("Highscore: "+Math.floor(highscore).toString(), canvas.width - 600, 150);
+                        if(bDEs>0)ctx.fillText("Bombs destroyed: "+bDEs.toString(), canvas.width - 600, 200);
+                    }
+                    else{
+                        ctx.fillStyle = 'black';
+                        ctx.fillText(strr, canvas.width - (strr.length+1)*42, 70, 1000);
+                    }
+
                 }
             });
 //actuallll start
