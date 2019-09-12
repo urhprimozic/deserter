@@ -2,6 +2,7 @@ kontra.init();
 let {initPointer, onPointerDown, pointer, SpriteSheet} = kontra;
 //resize canvas to cover the whole aera
 let htmlCanvas = document.getElementById("canvas");
+let ctx = htmlCanvas.getContext("2d");
 htmlCanvas.width = window.innerWidth;
 htmlCanvas.height = window.innerHeight;
 
@@ -14,6 +15,7 @@ let enemies = [];
 let env = [];
 let particles = [];
 let preEnv = [];
+let bloodEnv = [];
 
 let armySpeed = 4;
 initPointer();
@@ -21,6 +23,7 @@ initPointer();
 let playerIsAlive = true;
 let isOver = false;
 let lastBunker = screen.width;
+let sunRadius = Math.sqrt(canvas.width * canvas.width + canvas.height * canvas.height);
 
 //assets
 let playerImg = new Image();
@@ -76,6 +79,46 @@ playerImg.onload = function () {
                 }
             });
 
+            let sun = {x: -sunRadius, y: canvas.height / 2, q: Math.PI};
+/*
+            function createMountains() {
+
+                let Mounatin = kontra.Sprite({
+                    height:
+                });
+            }
+*/
+            function createBlood() {
+                let a = Math.floor(Math.random() * 60) + 20;
+                let b = Math.floor(Math.random() * 8) + 2;
+                let coloring = [];
+                let k = Math.floor(Math.random() * 60) + 35;
+                for (let i = 0; i < k; i++) {
+                    let na = a * Math.random();
+                    let nb = na * b / a;
+                    let g = 1;
+                    if (Math.random() > 0.5) g = -1;
+                    let x = g * Math.floor(Math.random() * na);
+                    let y = -Math.sqrt(nb * nb * (1 - (x * x) / (na * na)));
+                    let color = 'red';
+                    if (Math.random() > 0.9) color = 'rgb(200,176,117)';
+                    coloring.push([x, y, color]);
+                }
+                let Blood = kontra.Sprite({
+                    x: -a - 10,
+                    y: ground[1] - 3,
+                    coloring: coloring,
+                    dx: armySpeed,
+                    ttl: 800,
+                    render() {
+                        for (let i = 0; i < this.coloring.length; i++) {
+                            this.context.fillStyle = this.coloring[i][2];
+                            this.context.fillRect(this.coloring[i][0] + this.x, this.coloring[i][1] + this.y, 7, 7);
+                        }
+                    }
+                });
+                bloodEnv.push(Blood);
+            }
 
             function createBullet(rx, ry) {
                 let Bullet = kontra.Sprite({
@@ -87,14 +130,21 @@ playerImg.onload = function () {
                     dy: 0,
                     ttl: 300,
                     //throw this away
-                    width: 5,
-                    height: 5,
-                    color: 'blue',
+                  //  width: 5,
+                   // height: 5,
+                  //  color: 'rgb(78,71,25)',
+                    r: 3,
                     force: 7,
                     update() {
                         // for (let i = 0; i < enemies.length; i++) if (this.collidesWith(enemies[i])) enemies[i].ttl = 0;
                         if (this.collidesWith(groundSpr)) this.ttl = 0;
                         this.advance();
+                    },
+                    render(){
+                        this.context.fillStyle = 'rgb(78,71,25)';
+                        this.context.beginPath();  // start drawing a shape
+                        this.context.arc(this.x, this.y, this.r, 0, Math.PI*2);
+                        this.context.fill();
                     }
                 });
                 Bullet.dx = Math.cos(Bullet.q) * Bullet.v;
@@ -147,7 +197,7 @@ playerImg.onload = function () {
                     });
                     particles.push(blood);
                 }
-                player.y = 2*canvas.height;
+                player.y = 2 * canvas.height;
                 player.height = 0;
             }
 
@@ -240,15 +290,22 @@ playerImg.onload = function () {
                     dy: 0,
                     ttl: 300,
                     //throw this away
-                    width: 7,
-                    height: 7,
-                    color: 'yellow',
-                    update(){
-                        if(this.collidesWith(player)){
+                   // width: 7,
+                    //height: 7,
+                    //color: 'yellow',
+                    r: 5,
+                    update() {
+                        if (this.collidesWith(player)) {
                             this.ttl = 0;
                             death();
                         }
                         this.advance();
+                    },
+                    render(){
+                        this.context.fillStyle = 'rgb(41,45,0)';
+                        this.context.beginPath();  // start drawing a shape
+                        this.context.arc(this.x, this.y, this.r, 0, Math.PI*2);
+                        this.context.fill();
                     }
                 });
                 Bullet.dx = Math.cos(Bullet.q) * Bullet.v;
@@ -275,9 +332,9 @@ playerImg.onload = function () {
                             if (this.i < 3) this.counter = this.pause;
                             else {
                                 this.i = 0;
-                                this.counter = this.pause * 6;
+                                this.counter = this.pause * 7;
                             }
-                            if (this.x < canvas.width && playerIsAlive) createEnemyBullet(this.x + this.width / 2, this.y + this.height / 2, player.x + player.width / 2, player.y + player.height / 2);
+                            if (this.x < canvas.width && playerIsAlive) createEnemyBullet(Gun.x + Gun.width*Math.cos(Gun.rotation), Gun.y+Gun.width*Math.sin(Gun.rotation), player.x + player.width / 2, player.y + player.height / 2);
                             this.i += 1;
                         }
                         this.counter -= 1;
@@ -289,7 +346,7 @@ playerImg.onload = function () {
                 });
                 let Gun = kontra.Sprite({
                     height: 10,
-                    width: 150,
+                    width: 120,
                     anchor: {x: 0, y: 0.5},
                     x: Gunner.x + Gunner.width / 2,
                     y: Gunner.y + Gunner.height / 2,
@@ -297,8 +354,9 @@ playerImg.onload = function () {
                     dx: armySpeed,
                     color: 'black',
                     update() {
-                        if(playerIsAlive)this.rotation = Math.atan2(player.y + player.height / 2 - Gunner.y - Gunner.height / 2, player.x + player.width / 2 - Gunner.x + Gunner.width / 2);
+                        if (playerIsAlive) this.rotation = Math.atan2(player.y + player.height / 2 - Gunner.y - Gunner.height / 2, player.x + player.width / 2 - Gunner.x - Gunner.width / 2);
                         this.advance();
+                        console.log(this.width);
                     }
                 });
                 enemies.push(Gun);
@@ -323,11 +381,11 @@ playerImg.onload = function () {
                 let coloring = []
                 for (let i = 0; i < 11; i++) {
                     let row = [];
-                    let color = 'rgb(' + Math.floor(Math.random() * i * 10).toString() + ',' + (Math.floor(Math.random() * 155) + 100).toString() + ',' + Math.floor(Math.random() * i * 10).toString() + ')';
-                    if (i === 0)color = 'rgb(0,100,0)';
-                    if (i === 1)color = 'rgb(10,130,10)';
-                    if (i === 2)color = 'rgb(20,160,20)';
-                        row.push(color);
+                    let color = 'rgb(' + Math.floor(Math.random() * i * 7).toString() + ',' + (Math.floor(Math.random() * 155) + 100).toString() + ',' + Math.floor(Math.random() * i * 7).toString() + ')';
+                    if (i === 0) color = 'rgb(0,100,0)';
+                    if (i === 1) color = 'rgb(10,130,10)';
+                    if (i === 2) color = 'rgb(20,160,20)';
+                    row.push(color);
                     for (let j = 0; j < 10; j++) {
                         if (Math.random() * (i + 1) <= 0.99) row.push(1);
                         else row.push(0);
@@ -357,7 +415,8 @@ playerImg.onload = function () {
                 });
                 preEnv.push(grass);
             }
-            for(let i = 0;i*100<canvas.width;i++)createGrass(i*100);
+
+            for (let i = 0; i * 100 < canvas.width; i++) createGrass(i * 100);
 
             let groundSpr = kontra.Sprite({
                 x: 0,
@@ -450,24 +509,40 @@ playerImg.onload = function () {
             let loop = kontra.GameLoop({
                 update() {
                     //chance for a bomb
-                    let seed = Math.floor((Math.random() * 1001));
-                    if (seed >= 0 && seed <= 7) createBomb(Math.floor((Math.random() * (canvas.width - 50))) + 50)
-                    if (seed > 7 && seed <= 10 && lastBunker > canvas.height * 2 / 3) createGunner();
+                    let seed = Math.floor((Math.random() * 991));
+                    if (seed >= 0 && seed <= 9) createBomb(Math.floor((Math.random() * (canvas.width - 50))) + 50)
+                    if (seed > 9 && seed <= 12 && lastBunker > canvas.height * 2 / 3) createGunner();
+                    if (seed >= 0 && seed <= 2) createBlood();
                     sprites = sprites.filter(sprite => sprite.isAlive());
                     enemies = enemies.filter(sprite => sprite.isAlive());
                     enemyBullets = enemyBullets.filter(sprite => sprite.isAlive());
                     particles = particles.filter(sprite => sprite.isAlive());
                     env = env.filter(sprite => sprite.isAlive());
                     preEnv = preEnv.filter(sprite => sprite.isAlive());
+                    bloodEnv = bloodEnv.filter(sprite => sprite.isAlive());
                     for (let i = 0; i < env.length; i++) env[i].update();
                     for (let i = 0; i < enemyBullets.length; i++) enemyBullets[i].update();
                     for (let i = 0; i < enemies.length; i++) enemies[i].update();
                     for (let i = 0; i < sprites.length; i++) sprites[i].update();
                     for (let i = 0; i < particles.length; i++) particles[i].update();
                     for (let i = 0; i < preEnv.length; i++) preEnv[i].update();
+                    for (let i = 0; i < bloodEnv.length; i++) bloodEnv[i].update();
 
                 },
                 render() {
+                    //day and night cycle
+                    //move sun
+                    sun.q -= 0.004;//fuck owerflows
+                    sun.x = sunRadius * Math.cos(sun.q);
+                    sun.y = sunRadius * Math.sin(sun.q);
+
+                    let grd = ctx.createLinearGradient(sun.x, sun.y, -sun.x, -sun.y);
+                    grd.addColorStop(0, 'rgba(191,54,0,0.46)');
+                    grd.addColorStop(1, 'rgba(0,0,0,0.46)');
+
+                    ctx.fillStyle = grd;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
                     for (let i = 0; i < env.length; i++) env[i].render();
                     for (let i = 0; i < enemyBullets.length; i++) enemyBullets[i].render();
                     for (let i = 0; i < enemies.length; i++) enemies[i].render();
@@ -475,6 +550,7 @@ playerImg.onload = function () {
                     if (playerGun.isAlive()) sprites[1].render();
                     if (player.isAlive()) sprites[0].render();
                     for (let i = 0; i < particles.length; i++) particles[i].render();
+                    for (let i = 0; i < bloodEnv.length; i++) bloodEnv[i].render();
                     for (let i = 0; i < preEnv.length; i++) preEnv[i].render();
                 }
             });
